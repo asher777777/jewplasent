@@ -41,7 +41,24 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     // 1. Listen to Auth changes
-    const unsubAuth = onAuthStateChanged(auth, (currentUser) => {
+    const unsubAuth = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        try {
+          const idTokenResult = await currentUser.getIdTokenResult();
+          const forceLogoutTime = idTokenResult.claims.logoutAt as number | undefined;
+          if (forceLogoutTime) {
+            const authTime = new Date(currentUser.metadata.lastSignInTime || 0).getTime();
+            if (authTime < forceLogoutTime * 1000) {
+              await signOut(auth);
+              setUser(null);
+              setIsEditMode(false);
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn("Auth session check:", e);
+        }
+      }
       setUser(currentUser);
       if (!currentUser) setIsEditMode(false);
     });
