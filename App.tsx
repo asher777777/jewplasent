@@ -1,12 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar.tsx';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout.tsx';
 import Home from './pages/Home.tsx';
 import About from './components/About.tsx';
 import Contact from './components/Contact.tsx';
 import WorkshopDetail from './pages/WorkshopDetail.tsx';
+import CategoryPage from './pages/CategoryPage.tsx';
+import ScrollToTop from './components/ScrollToTop.tsx';
 import { Workshop } from './types.ts';
 import { AdminProvider } from './contexts/AdminContext.tsx';
 import AdminToolbar from './components/AdminToolbar.tsx';
@@ -20,14 +20,13 @@ const App: React.FC = () => {
     const fetchWorkshops = async () => {
       try {
         const data = await FirestoreService.getAllWorkshops();
-        
         if (data.length === 0) {
-          // Fallback to local JSON if Firestore is empty
           const res = await fetch('./workshopsData.json');
           const localData = await res.json();
           setWorkshops(localData);
         } else {
-          setWorkshops(data);
+          const activeData = data.filter((w: any) => !w.isDeleted);
+          setWorkshops(activeData);
         }
       } catch (err) {
         console.error("Error loading workshops:", err);
@@ -48,17 +47,19 @@ const App: React.FC = () => {
 
   return (
     <AdminProvider>
-      <HashRouter>
-        <Layout>
+      <BrowserRouter>
+        <ScrollToTop />
+        <Layout workshops={workshops}>
           <Routes>
             <Route path="/" element={<Home workshops={workshops} />} />
+            <Route path="/category/:category" element={<CategoryPage workshops={workshops} />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/workshop/:id" element={<WorkshopDetail workshops={workshops} />} />
           </Routes>
         </Layout>
         <AdminToolbar />
-      </HashRouter>
+      </BrowserRouter>
     </AdminProvider>
   );
 };
